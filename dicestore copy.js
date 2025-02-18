@@ -498,31 +498,6 @@ const ABI = [
 let provider, signer, contract, currentAccount;
 
 // 🔹 메타마스크 연결
-
-async function displayDices() {
-    const items = await loadItems();
-    const container = document.getElementById("diceList");
-    container.innerHTML = "";
-
-    for (const dice of items) {
-        let price = "불러오는 중...";
-        if (window.getItemPrice) {
-            price = await window.getItemPrice(dice.id);
-        }
-
-        console.log(`🔍 ${dice.title} 가격 최종 표시: ${price}`);
-        const card = document.createElement("div");
-        card.className = "dice-card";
-        card.innerHTML = `
-            <img src="${dice.src}" alt="${dice.title}">
-            <h3>${dice.title}</h3>
-            <p>가격: ${price}</p>
-            <button onclick="buyItem(${dice.id})">구매하기</button>
-        `;
-        container.appendChild(card);
-    }
-}
-
 async function connectWallet() {
     if (window.ethereum) {
         provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -715,6 +690,98 @@ async function checkBalance() {
     }
 }
 
+async function getItemName(itemId) {
+    const items = await loadItems(); // items.json에서 데이터 가져오기
+    const item = items.find(i => i.id === itemId); // itemId로 아이템 찾기
+    return item ? item.title : "알 수 없는 주사위"; // 아이템이 없으면 기본값 반환
+}
+
+// 장착하기 리스트
+let equippedSkins = []; 
+
+async function equipSkin(itemId) {
+    if (equippedSkins.length > 0) {
+        alert("이미 스킨을 장착하고 있습니다. 먼저 장착을 해제하세요.");
+        return;
+    }
+
+    const itemName = await getItemName(itemId); 
+
+    equippedSkins = [{ id: itemId, name: itemName }];
+    console.log("장착한 스킨 목록:", equippedSkins);
+
+    document.querySelectorAll(".equip-btn").forEach(btn => {
+        btn.innerText = "장착하기";
+        btn.setAttribute("onclick", `equipSkin(${btn.dataset.id})`);
+    });
+
+    const button = document.getElementById(`skin-btn-${itemId}`);
+    button.innerText = "장착 해제";
+    button.setAttribute("onclick", `unSkin(${itemId})`);
+}
+
+function unSkin(itemId) {
+    equippedSkins = []; 
+    console.log("장착 해제 후 스킨 목록:", equippedSkins);
+
+    const button = document.getElementById(`skin-btn-${itemId}`);
+    button.innerText = "장착하기";
+    button.setAttribute("onclick", `equipSkin(${itemId})`);
+}
+
+window.equipSkin = equipSkin;
+window.unSkin = unSkin;
+
+
+async function loadPurchasedSkins() {
+    if (!contract) return alert("먼저 메타마스크를 연결하세요!");
+
+    const userAddress = await signer.getAddress();
+    console.log(`🛍️ 사용자(${userAddress})의 구매한 스킨 불러오기...`);
+
+    try {
+        const purchasedItems = await contract.getPurchaseHistory(userAddress);
+
+        console.log("✅ 구매한 스킨 목록:", purchasedItems);
+        return purchasedItems.map(item => Number(item));
+    } catch (error) {
+        console.error("🚨 구매한 스킨 불러오기 실패:", error);
+        return [];
+    }
+}
+
+async function displayDices() {
+    const items = await loadItems();
+    const purchasedSkins = await loadPurchasedSkins();
+    const container = document.getElementById("diceList");
+    container.innerHTML = "";
+
+    for (const dice of items) {
+        let price = "불러오는 중...";
+        if (window.getItemPrice) {
+            price = await window.getItemPrice(dice.id);
+        }
+
+        const card = document.createElement("div");
+        card.className = "dice-card";
+
+        // 🔹 이미 구매한 스킨인지 확인
+        const isPurchased = purchasedSkins.includes(dice.id);
+        const isEquipped = equippedSkins.includes(dice.id);
+        const buttonLabel = isEquipped ? "장착 해제" : isPurchased ? "장착하기" : "구매하기";
+        const buttonAction = isEquipped ? `unequipSkin(${dice.id})` : isPurchased ? `equipSkin(${dice.id})` : `buyItem(${dice.id})`;
+
+        card.innerHTML = `
+            <img src="${dice.src}" alt="${dice.title}">
+            <h3>${dice.title}</h3>
+            <p>가격: ${price}</p>
+            <button id="skin-btn-${dice.id}" onclick="${buttonAction}">${buttonLabel}</button>
+        `;
+        container.appendChild(card);
+    }
+}
+
+
 // 🔹 주사위 굴리기
 async function rollDice() {
     if (!window.loadItems) return alert("아이템 데이터를 불러올 수 없습니다!");
@@ -841,26 +908,6 @@ window.onload = async function() {
     await loadPurchaseHistory(); // 🔥 지갑 연결 후 자동으로 구매 내역 불러오기
 };
 
-
-
-
-
-
-
-
-
-
-
-// ✅ 초기 실행 시 계정 변경 감지 함수 호출
-listenForAccountChange();
-
-
-
-
-
-
-
-// ✅ 전역 객체로 등록하여 index.html에서도 사용 가능하도록 설정
 window.getItemPrice = getItemPrice;
 
 

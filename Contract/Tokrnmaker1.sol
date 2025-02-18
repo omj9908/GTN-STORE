@@ -36,7 +36,10 @@ contract GTNToken is ERC20, Ownable {
         require(price > 0, "This item is not for sale");
         require(msg.sender != owner(), "Admin cannot buy items!");
         require(balanceOf(msg.sender) >= price, "Insufficient GTN balance!");
-        require(!purchaseHistory[msg.sender][itemId], "Item already purchased!");
+        require(
+            !purchaseHistory[msg.sender][itemId],
+            "Item already purchased!"
+        );
 
         _transfer(msg.sender, owner(), price);
         purchaseHistory[msg.sender][itemId] = true;
@@ -45,7 +48,10 @@ contract GTNToken is ERC20, Ownable {
     }
 
     // 🔹 사용자가 특정 아이템을 구매했는지 확인하는 함수
-    function hasPurchasedItem(address user, uint256 itemId) external view returns (bool) {
+    function hasPurchasedItem(
+        address user,
+        uint256 itemId
+    ) external view returns (bool) {
         return purchaseHistory[user][itemId];
     }
 
@@ -55,7 +61,9 @@ contract GTNToken is ERC20, Ownable {
     }
 
     // 🔹 사용자의 구매한 아이템 목록 조회
-    function getPurchaseHistory(address user) external view returns (uint256[] memory) {
+    function getPurchaseHistory(
+        address user
+    ) external view returns (uint256[] memory) {
         uint256 count = 0;
 
         // 🔍 사용자가 구매한 아이템 수 확인
@@ -67,7 +75,8 @@ contract GTNToken is ERC20, Ownable {
 
         // 📌 구매한 아이템이 없으면 빈 배열 반환
         if (count == 0) {
-            return new uint256[](0);     }
+            return new uint256[](0);
+        }
 
         // 🔹 정확한 크기의 배열 생성 및 데이터 저장
         uint256[] memory purchasedItems = new uint256[](count);
