@@ -1,0 +1,8 @@
+[
+    { "id": 0, "title": "빨간 주사위", "cost": 2, "src": "https://example.com/red-dice.jpg" },
+    { "id": 1, "title": "파란 주사위", "cost": 3, "src": "https://example.com/blue-dice.jpg" },
+    { "id": 2, "title": "초록 주사위", "cost": 2, "src": "https://example.com/green-dice.jpg" },
+    { "id": 3, "title": "노란 주사위", "cost": 4, "src": "https://example.com/yellow-dice.jpg" },
+    { "id": 4, "title": "하늘 주사위", "cost": 5, "src": "https://example.com/sky-dice.jpg" },
+    { "id": 5, "title": "보라 주사위", "cost": 6, "src": "https://example.com/purple-dice.jpg" }
+]

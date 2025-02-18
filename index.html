@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>주사위 상점</title>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+    <script type="module" src="dicestore copy.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        .dice-container { display: flex; flex-wrap: wrap; justify-content: center; }
+        .dice-card { border: 1px solid #ddd; padding: 10px; margin: 10px; width: 250px; }
+        .dice-card img { width: 100%; height: auto; }
+        button { padding: 10px; margin-top: 10px; cursor: pointer; }
+        .purchase-history { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>주사위 상점 🎲</h1>
+    
+    <button id="getGTN" style="display: none;" onclick="requestGTN()">💰 GTN 획득</button>
+
+    <input type="text" id="customAccount" placeholder="원하는 지갑 주소 입력">
+
+    <button onclick="connectWallet()">🔗 메타마스크 연결</button>
+    <button onclick="setCustomAccount()">수동 계정 설정</button>
+
+    <button onclick="checkBalance()">💰 GTN 잔액 확인</button>
+
+    <button onclick="loadPurchaseHistory()">🔄 구매 내역 새로고침</button>
+
+    <p id="account">지갑이 연결되지 않음</p>
+    <p id="balance">잔액: -- GTN</p>
+    
+    <button onclick="rollDice()">🎲 주사위 굴리기</button>
+    <p id="result"></p>
+
+    <div class="dice-container" id="diceList"></div>
+
+    <div class="purchase-history">
+        <h2>🛍️ 구매 내역</h2>
+        <ul id="purchaseList"></ul>
+    </div>
+
+    <script>
+        async function loadItems() {
+            const response = await fetch("items.json"); // JSON 파일 불러오기
+            return await response.json();
+        }
+
+		async function displayDices() {
+    const items = await loadItems();
+    const container = document.getElementById("diceList");
+    container.innerHTML = "";
+
+    for (const dice of items) {
+        let price = "불러오는 중...";
+        if (window.getItemPrice) {
+            price = await window.getItemPrice(dice.id);
+        }
+
+        console.log(`🔍 ${dice.title} 가격 최종 표시: ${price}`); // 여기서 확인
+        const card = document.createElement("div");
+        card.className = "dice-card";
+        card.innerHTML = `
+            <img src="${dice.src}" alt="${dice.title}">
+            <h3>${dice.title}</h3>
+            <p>가격: ${price}</p>
+            <button onclick="buyItem(${dice.id})">구매하기</button>
+        `;
+        container.appendChild(card);
+    }
+}
+
+
+
+        function addPurchaseHistory(item) {
+            const list = document.getElementById("purchaseList");
+            const listItem = document.createElement("li");
+            listItem.textContent = item;
+            list.appendChild(listItem);
+        }
+
+        function rollDice() {
+            loadItems().then(items => {
+                const diceResult = Math.floor(Math.random() * items.length);
+                document.getElementById("result").innerText = `🎲 주사위 결과: ${items[diceResult].title} 선택됨!`;
+            });
+        }
+
+        displayDices();
+    </script>
+</body>
+</html>
