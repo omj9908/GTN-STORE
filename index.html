@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="0;url=login.html">
     <title>주사위 상점</title>
     <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
     <script type="module" src="dicestore copy.js"></script>
@@ -17,7 +18,8 @@
 </head>
 <body>
     <h1>주사위 상점 🎲</h1>
-    
+        <button onclick="logout()">🚪 로그아웃</button>
+
     <button id="getGTN" style="display: none;" onclick="requestGTN()">💰 GTN 획득</button>
 
     <input type="text" id="customAccount" placeholder="원하는 지갑 주소 입력">
@@ -43,37 +45,50 @@
     </div>
 
     <script>
+        function checkLoginStatus() {
+            const userAccount = localStorage.getItem("userAccount");
+            if (!userAccount) {
+                alert("로그인이 필요합니다!");
+                window.location.href = "login.html"; // 🚀 로그인 안 하면 로그인 페이지로 이동
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem("userAccount");
+            alert("로그아웃 되었습니다.");
+            window.location.href = "login.html";
+        }
+
         async function loadItems() {
             const response = await fetch("items.json"); // JSON 파일 불러오기
             return await response.json();
         }
 
-		async function displayDices() {
-    const items = await loadItems();
-    const container = document.getElementById("diceList");
-    container.innerHTML = "";
+        async function displayDices() {
+            const items = await loadItems();
+            const container = document.getElementById("diceList");
+            container.innerHTML = "";
 
-    for (const dice of items) {
-        let price = "불러오는 중...";
-        if (window.getItemPrice) {
-            price = await window.getItemPrice(dice.id);
+            for (const dice of items) {
+                let price = "불러오는 중...";
+                if (window.getItemPrice) {
+                    price = await window.getItemPrice(dice.id);
+                }
+
+                console.log(`🔍 ${dice.title} 가격 최종 표시: ${price}`);
+                const card = document.createElement("div");
+                card.className = "dice-card";
+                card.innerHTML = `
+                    <img src="${dice.src}" alt="${dice.title}">
+                    <h3>${dice.title}</h3>
+                    <p>가격: ${price}</p>
+                    <button onclick="buyItem(${dice.id})">구매하기</button>
+                `;
+                container.appendChild(card);
+            }
         }
 
-        console.log(`🔍 ${dice.title} 가격 최종 표시: ${price}`); // 여기서 확인
-        const card = document.createElement("div");
-        card.className = "dice-card";
-        card.innerHTML = `
-            <img src="${dice.src}" alt="${dice.title}">
-            <h3>${dice.title}</h3>
-            <p>가격: ${price}</p>
-            <button onclick="buyItem(${dice.id})">구매하기</button>
-        `;
-        container.appendChild(card);
-    }
-}
-
-
-
+        // ✅ 구매 내역 추가
         function addPurchaseHistory(item) {
             const list = document.getElementById("purchaseList");
             const listItem = document.createElement("li");
@@ -88,7 +103,10 @@
             });
         }
 
-        displayDices();
+        window.onload = function() {
+            checkLoginStatus(); 
+            displayDices(); 
+        };
     </script>
 </body>
 </html>

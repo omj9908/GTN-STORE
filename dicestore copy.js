@@ -548,6 +548,7 @@ async function connectWallet() {
         contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
 
         console.log(`🚀 현재 계정: ${metaMaskAccount}`);
+
         document.getElementById("account").innerText = `지갑 연결됨: ${metaMaskAccount}`;
 
         await checkAdmin();
@@ -558,6 +559,24 @@ async function connectWallet() {
         alert("메타마스크를 설치해주세요!");
     }
 }
+
+async function checkLogin() {
+    const storedAccount = localStorage.getItem("userAccount");
+
+    if (!storedAccount) {
+        window.location.href = "login.html";
+    } else {
+        await connectWallet(); 
+    }
+}
+
+function logout() {
+    localStorage.removeItem("userAccount");
+    alert("로그아웃 되었습니다.");
+    window.location.href = "login.html";
+}
+
+
 
 // 🔹 아이템 구매
 // 🔹 아이템 구매 함수 (GTN 토큰을 관리자에게 전송)
@@ -913,6 +932,7 @@ window.getItemPrice = getItemPrice;
 
 // 🔹 초기화
 async function initialize() {
+	await checkLogin();
     await connectWallet();
     await checkAdmin();
 }
