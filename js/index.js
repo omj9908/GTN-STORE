@@ -764,6 +764,10 @@ let equippedSkin = null;
 function loadEquippedSkin() {
     const storedSkin = localStorage.getItem("equippedSkin");
     equippedSkin = storedSkin ? JSON.parse(storedSkin) : null;
+
+    if (equippedSkin) {
+        equippedSkins = [equippedSkin];
+    }
 }
 
 // 장착하기 리스트
@@ -778,6 +782,9 @@ async function equipSkin(itemId) {
     const itemName = await getItemName(itemId); 
 
     equippedSkins = [{ id: itemId, name: itemName }];
+    equippedSkin = equippedSkins[0];  // 🔥 현재 장착된 스킨 정보 업데이트
+    localStorage.setItem("equippedSkin", JSON.stringify(equippedSkin)); // 🔥 장착 정보 저장
+
     console.log("장착한 스킨 목록:", equippedSkins);
 
     document.querySelectorAll(".equip-btn").forEach(btn => {
@@ -790,14 +797,19 @@ async function equipSkin(itemId) {
     button.setAttribute("onclick", `unSkin(${itemId})`);
 }
 
+// 🔹 장착 해제 함수
 function unSkin(itemId) {
     equippedSkins = []; 
+    equippedSkin = null; // 🔥 장착된 스킨 정보 초기화
+    localStorage.removeItem("equippedSkin"); // 🔥 로컬 스토리지에서 삭제
+
     console.log("장착 해제 후 스킨 목록:", equippedSkins);
 
     const button = document.getElementById(`skin-btn-${itemId}`);
     button.innerText = "장착하기";
     button.setAttribute("onclick", `equipSkin(${itemId})`);
 }
+
 
 window.equipSkin = equipSkin;
 window.unSkin = unSkin;
@@ -974,8 +986,19 @@ window.loadPurchaseHistory = loadPurchaseHistory;
 
 window.onload = async function() {
     await connectWallet();
-    await loadPurchaseHistory(); 
-	await displayDices();
+    await loadPurchaseHistory();
+    await displayDices();
+    
+    loadEquippedSkin(); 
+
+    if (equippedSkin) {
+        console.log("저장된 장착 정보 복원:", equippedSkin);
+        const button = document.getElementById(`skin-btn-${equippedSkin.id}`);
+        if (button) {
+            button.innerText = "장착 해제";
+            button.setAttribute("onclick", `unSkin(${equippedSkin.id})`);
+        }
+    }
 };
 
 window.getItemPrice = getItemPrice;
