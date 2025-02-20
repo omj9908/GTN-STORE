@@ -1,9 +1,4 @@
-// 아이템 구매 내역 업데이트
-// Tokrnmaker1.sol
-// index.html
-// 이렇게 사용할것
-
-const CONTRACT_ADDRESS = "0x640281c858a2c51b586ed827b387f8d2cb67c2b7";
+const CONTRACT_ADDRESS = "0x0fb599e09f6a68145164611c8ef727ff1d87a644";
 const ABI = [
 	{
 		"inputs": [
@@ -497,67 +492,50 @@ const ABI = [
 
 let provider, signer, contract, currentAccount;
 
-// 🔹 메타마스크 연결
+let isWalletConnected = false;
+
 async function connectWallet() {
-    if (window.ethereum) {
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        
-        // 🔹 현재 MetaMask에 연결된 계정 가져오기
-        const accounts = await provider.send("eth_requestAccounts", []);
-        if (accounts.length === 0) {
-            alert("메타마스크 계정을 선택해야 합니다!");
-            return;
-        }
-
-        let metaMaskAccount = accounts[0]; // MetaMask에서 선택한 기본 계정
-        let customAddress = document.getElementById("customAccount").value.trim(); // 사용자가 입력한 주소
-
-        if (!ethers.utils.isAddress(customAddress)) {
-            alert("유효한 이더리움 주소를 입력하세요!");
-            return;
-        }
-
-        // 🔹 입력한 주소가 현재 MetaMask 계정과 다르면 강제로 MetaMask에 요청
-        if (customAddress.toLowerCase() !== metaMaskAccount.toLowerCase()) {
-            alert(`입력한 주소(${customAddress})와 현재 MetaMask에 연결된 주소(${metaMaskAccount})가 다릅니다. MetaMask에서 직접 해당 주소를 선택해야 합니다.`);
-
-            // 🔥 MetaMask에서 사용자가 원하는 계정을 선택할 수 있도록 요청
-            try {
-                await window.ethereum.request({
-                    method: "wallet_requestPermissions",
-                    params: [{ eth_accounts: {} }]
-                });
-
-                // 🔄 다시 MetaMask 계정 목록 가져오기
-                const updatedAccounts = await provider.send("eth_requestAccounts", []);
-                metaMaskAccount = updatedAccounts.find(acc => acc.toLowerCase() === customAddress.toLowerCase()) || updatedAccounts[0];
-
-                if (metaMaskAccount.toLowerCase() !== customAddress.toLowerCase()) {
-                    alert("MetaMask에서 해당 계정을 활성화해야 합니다!");
-                    return;
-                }
-            } catch (error) {
-                console.error("🚨 MetaMask 권한 요청 실패:", error);
-                alert("MetaMask에서 해당 계정을 직접 선택해주세요.");
-                return;
-            }
-        }
-
-        // 🔹 signer를 입력한 주소로 설정 (MetaMask에서 선택한 주소)
-        signer = provider.getSigner(metaMaskAccount);
-        contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-
-        console.log(`🚀 현재 계정: ${metaMaskAccount}`);
-
-        document.getElementById("account").innerText = `지갑 연결됨: ${metaMaskAccount}`;
-
-        await checkAdmin();
-        await checkBalance(metaMaskAccount);
-        await loadPurchaseHistory();
-        await displayDices();
-    } else {
-        alert("메타마스크를 설치해주세요!");
+    if (isWalletConnected) {
+        console.log("🔄 이미 MetaMask와 연결됨.");
+        return;
     }
+
+    if (!window.ethereum) {
+        alert("MetaMask가 설치되어 있지 않습니다!");
+        return;
+    }
+
+    provider = new ethers.providers.Web3Provider(window.ethereum);
+    const accounts = await provider.send("eth_requestAccounts", []);
+
+    if (accounts.length === 0) {
+        alert("메타마스크 계정을 선택해야 합니다!");
+        return;
+    }
+
+    const storedAccount = localStorage.getItem("userAccount");
+    const metaMaskAccount = accounts[0].toLowerCase();
+
+    if (!storedAccount) {
+        alert("로그인이 필요합니다!");
+        window.location.href = "login.html";
+        return;
+    }
+
+    if (storedAccount.toLowerCase() !== metaMaskAccount) {
+        alert(`⚠️ 로그인한 계정(${storedAccount})과 MetaMask 계정(${metaMaskAccount})이 다릅니다.`);
+        return;
+    }
+
+    signer = provider.getSigner(metaMaskAccount);
+    contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+
+    console.log(`✅ MetaMask 연결 완료: ${metaMaskAccount}`);
+    isWalletConnected = true; 
+
+    await checkBalance();
+    await checkAdmin();
+    await loadPurchaseHistory();
 }
 
 async function checkLogin() {
@@ -576,51 +554,102 @@ function logout() {
     window.location.href = "login.html";
 }
 
-
-
-// 🔹 아이템 구매
-// 🔹 아이템 구매 함수 (GTN 토큰을 관리자에게 전송)
-// 🔹 아이템 구매 함수 (GTN 토큰을 관리자에게 전송)
 async function buyItem(itemId) {
     if (!contract) return alert("먼저 메타마스크를 연결하세요!");
 
     try {
         console.log(`🛒 아이템(${itemId}) 구매 시도 중...`);
-        
-        // 🔹 스마트 컨트랙트의 buyItem 함수 실행
+
         const tx = await contract.buyItem(itemId);
-        await tx.wait(); // 트랜잭션 완료 대기
+        await tx.wait(); 
 
         console.log(`✅ 아이템(${itemId}) 구매 완료!`);
         alert("✅ 주사위 구매 완료!");
 
-        checkBalance(); // 🔹 구매 후 잔액 업데이트
-        loadPurchaseHistory(); // 🔥 구매 후 자동으로 구매 내역 업데이트 추가!
+        await checkBalance(); // 🔹 구매 후 잔액 업데이트
+        await loadPurchaseHistory();
+        await displayDices();
+
     } catch (error) {
         console.error("🚨 구매 실패:", error);
         alert("구매 실패: " + error.message);
     }
 }
 
+if (typeof window.displayDices === "undefined") {
+    window.displayDices = async function () {
+        console.log("displayDices() 실행됨");
 
+        const items = await loadItems();
+        if (!items || items.length === 0) {
+            console.warn("아이템 데이터가 없습니다. JSON 파일을 확인하세요.");
+            return;
+        }
+
+        const purchasedSkins = await loadPurchasedSkins();  // 🔥 최신 구매 내역 반영
+        console.log("최신 구매한 스킨 목록:", purchasedSkins);
+
+        const container = document.getElementById("diceList");
+        if (!container) {
+            console.error("diceList' 요소를 찾을 수 없음. HTML을 확인하세요.");
+            return;
+        }
+
+        container.innerHTML = "";
+
+        for (const dice of items) {
+            let price = "불러오는 중...";
+            if (window.getItemPrice) {
+                price = await window.getItemPrice(dice.id);
+            }
+
+            const isPurchased = purchasedSkins.includes(dice.id);
+            const isEquipped = equippedSkins.includes(dice.id);
+            const buttonLabel = isEquipped ? "장착 해제" : isPurchased ? "장착하기" : "구매하기";
+            const buttonAction = isEquipped ? `unSkin(${dice.id})` : isPurchased ? `equipSkin(${dice.id})` : `buyItem(${dice.id})`;
+
+            const card = document.createElement("div");
+            card.className = "dice-card";
+            card.innerHTML = `
+                <img src="${dice.src}" alt="${dice.title}">
+                <h3>${dice.title}</h3>
+                <p>가격: ${price}</p>
+                <button id="skin-btn-${dice.id}" onclick="${buttonAction}">${buttonLabel}</button>
+            `;
+            container.appendChild(card);
+        }
+
+        console.log("주사위 리스트 최신화 완료");
+    };
+}
+
+let isAdminChecked = false;
 
 async function checkAdmin() {
-    if (!contract) return;
-    
-    const currentAccount = await signer.getAddress();
-    const ownerAddress = await contract.owner();
+    if (isAdminChecked) {
+        return; 
+    }
 
-    console.log("🚀 현재 계정:", currentAccount);
-    console.log("🚀 관리자 계정:", ownerAddress);
+    if (!contract || !signer) {
+        console.warn("🚨 contract 또는 signer가 설정되지 않음. MetaMask 연결을 먼저 수행합니다.");
+        await connectWallet();
+    }
 
-    const getGTNButton = document.getElementById("getGTN");
+    try {
+        const currentAccount = await signer.getAddress();
+        const ownerAddress = await contract.owner();
 
-    if (currentAccount.toLowerCase() !== ownerAddress.toLowerCase()) {
-        console.log("✅ 일반 유저 감지 → getGTN 버튼 활성화");
-        getGTNButton.style.display = "block"; 
-    } else {
-        console.log("🔒 관리자 계정 감지 → getGTN 버튼 숨김");
-        getGTNButton.style.display = "none";  // 🔹 관리자 계정이면 버튼 숨김
+        const getGTNButton = document.getElementById("getGTN");
+
+        if (currentAccount.toLowerCase() !== ownerAddress.toLowerCase()) {
+            getGTNButton.style.display = "block"; 
+        } else {
+            getGTNButton.style.display = "none";
+        }
+
+        isAdminChecked = true; 
+    } catch (error) {
+        console.error("🚨 관리자 확인 실패:", error);
     }
 }
 
@@ -635,32 +664,29 @@ async function requestGTN() {
         return;
     }
 
-    let recipient = document.getElementById("customAccount").value.trim();
+    let recipientInput = document.getElementById("customAccount"); 
+    let recipient = recipientInput ? recipientInput.value.trim() : null;
     const currentAccount = connectedAccounts[0];
 
-    // 🔹 입력한 주소가 현재 MetaMask 계정과 다르면 오류 표시
-    if (recipient.toLowerCase() !== currentAccount.toLowerCase()) {
-        alert(`입력한 주소(${recipient})와 현재 MetaMask 계정(${currentAccount})이 다릅니다. MetaMask에서 해당 주소를 선택하세요.`);
-        return;
+    if (!recipient) {
+        recipient = currentAccount;  // 입력한 값이 없으면 현재 MetaMask 계정 사용
     }
 
     try {
         console.log(`🚀 ${recipient}에게 100 GTN 전송 중...`);
         
-        // 🔥 GTN 토큰 발행 및 전송
         const tx = await contract.mintGTN(recipient, ethers.utils.parseUnits("100", 18));
         await tx.wait();
 
         alert(`✅ ${recipient}에게 100 GTN 전송 완료!`);
         checkBalance(recipient);
-
-        // 🔥 **MetaMask에 GTN 토큰 자동 추가**
         await addGTNToMetaMask();
     } catch (error) {
         console.error("🚨 GTN 전송 실패:", error);
         alert("GTN 전송 실패: " + error.message);
     }
 }
+
 
 // 🔹 MetaMask에 GTN 토큰 자동 추가
 async function addGTNToMetaMask() {
@@ -697,10 +723,13 @@ async function addGTNToMetaMask() {
 
 // 🔹 GTN 잔액 조회
 async function checkBalance() {
-    if (!contract) return alert("먼저 메타마스크를 연결하세요!");
+    if (!contract || !signer) {
+        console.warn("🚨 contract 또는 signer가 설정되지 않음. MetaMask 연결을 먼저 수행합니다.");
+        await connectWallet();
+    }
 
-    const userAddress = await signer.getAddress();
     try {
+        const userAddress = await signer.getAddress();
         const balance = await contract.balanceOf(userAddress);
         document.getElementById("balance").innerText = `잔액: ${ethers.utils.formatUnits(balance, 18)} GTN`;
     } catch (error) {
@@ -713,6 +742,28 @@ async function getItemName(itemId) {
     const items = await loadItems(); // items.json에서 데이터 가져오기
     const item = items.find(i => i.id === itemId); // itemId로 아이템 찾기
     return item ? item.title : "알 수 없는 주사위"; // 아이템이 없으면 기본값 반환
+}
+
+async function loadItems() {
+    try {
+        const response = await fetch("items.json");
+        if (!response.ok) throw new Error("아이템 데이터를 불러오는데 실패했습니다.");
+
+        const data = await response.json();
+        console.log("✅ items.json 데이터 로드 성공:", data);
+        return data;
+    } catch (error) {
+        console.error("🚨 items.json 데이터 로드 실패:", error);
+        return [];
+    }
+}
+
+
+let equippedSkin = null;
+
+function loadEquippedSkin() {
+    const storedSkin = localStorage.getItem("equippedSkin");
+    equippedSkin = storedSkin ? JSON.parse(storedSkin) : null;
 }
 
 // 장착하기 리스트
@@ -833,115 +884,134 @@ async function getItemPrice(itemId) {
     }
 }
 
+let isAccountListenerAdded = false;
 
-// 11:39 수정사항(추가)
+
+
 async function listenForAccountChange() {
-    if (!window.ethereum) return;
+    if (!window.ethereum || isAccountListenerAdded) {
+        return;
+    }
 
     window.ethereum.on("accountsChanged", async (accounts) => {
         if (accounts.length === 0) {
-            console.log("🚨 메타마스크 연결 해제됨");
-            alert("메타마스크 연결이 해제되었습니다. 다시 연결해주세요.");
+            alert("MetaMask 연결이 해제되었습니다. 다시 로그인하세요.");
+            localStorage.removeItem("userAccount");
+            window.location.href = "login.html";
             return;
         }
 
-        console.log("🔄 계정 변경됨:", accounts[0]);
+        const newMetaMaskAccount = accounts[0].toLowerCase();
+        const storedAccount = localStorage.getItem("userAccount");
 
-        // ✅ 새 계정으로 Metamask 연결 다시 설정
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        signer = provider.getSigner();
-        contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+        if (storedAccount.toLowerCase() !== newMetaMaskAccount) {
+            alert(`⚠️ 로그인한 계정(${storedAccount})과 MetaMask 계정(${newMetaMaskAccount})이 다릅니다.`);
+            return;
+        }
 
-        const currentAccount = await signer.getAddress();
-        console.log(`✅ 현재 선택된 계정: ${currentAccount}`);
-
-        // 🔹 UI 및 데이터 업데이트
-        document.getElementById("account").innerText = `지갑 연결됨: ${currentAccount}`;
-        await checkAdmin();
-        await checkBalance();
-        await loadPurchaseHistory(); // 🔥 계정 변경 시 구매 내역 자동 업데이트
+        await connectWallet(); 
     });
+
+    isAccountListenerAdded = true;
 }
 
 listenForAccountChange();
 
+let isPurchaseHistoryLoaded = false;
+
 async function loadPurchaseHistory() {
-    if (!contract) return alert("먼저 메타마스크를 연결하세요!");
+    if (isPurchaseHistoryLoaded) {
+        return; // 🔄 이미 구매 내역을 불러왔습니다.
+    }
+
+    if (!contract) {
+        console.warn("🚨 contract가 설정되지 않음. MetaMask 연결을 먼저 수행합니다.");
+        await connectWallet();
+    }
 
     try {
         const userAddress = await signer.getAddress();
-        console.log(`🛍️ 구매 내역 불러오기 (사용자: ${userAddress})...`);
-
-        // ✅ 스마트 컨트랙트에서 구매 내역 조회
         const purchasedItems = await contract.getPurchaseHistory(userAddress);
 
         if (!purchasedItems || purchasedItems.length === 0) {
-            console.warn("🚨 구매한 스킨이 없음.");
+            console.warn("🚨 구매 내역 없음."); // ✅ 한 번만 출력
             document.getElementById("purchaseList").innerHTML = "<li>구매 내역이 없습니다.</li>";
-            return;
+        } else {
+            const list = document.getElementById("purchaseList");
+            list.innerHTML = "";
+            for (const itemId of purchasedItems) {
+                const listItem = document.createElement("li");
+                listItem.textContent = `🎲 스킨 ID: ${itemId}`;
+                list.appendChild(listItem);
+            }
         }
 
-        console.log("✅ 블록체인에서 구매 내역 불러오기:", purchasedItems);
-
-        // ✅ 구매한 아이템 리스트 업데이트
-        const list = document.getElementById("purchaseList");
-        list.innerHTML = ""; // 기존 목록 초기화
-
-        for (const itemId of purchasedItems) {
-            const formattedItemId = Number(itemId);
-            const priceText = await getItemPrice(formattedItemId);
-
-            const listItem = document.createElement("li");
-            listItem.textContent = `🎲 스킨 ID: ${formattedItemId} - ${priceText}`;
-            list.appendChild(listItem);
-        }
-
-        console.log("✅ 구매 내역이 정상적으로 업데이트되었습니다.");
+        isPurchaseHistoryLoaded = true; // ✅ 구매 내역 확인 완료 플래그
     } catch (error) {
         console.error("🚨 구매 내역 불러오기 실패:", error);
-        alert("구매 내역을 불러오는 중 오류가 발생했습니다.");
     }
 }
 
 async function debugPurchaseHistory() {
+    if (!signer) {
+        console.warn("signer가 설정되지 않음. MetaMask 연결을 먼저 수행합니다.");
+        await connectWallet();
+    }
 
     try {
         const userAddress = await signer.getAddress();
         const purchasedItems = await contract.getPurchaseHistory(userAddress);
 
-        console.log("📊 [디버깅] 현재 블록체인에서 반환된 구매 내역:", purchasedItems);
+        console.log("[디버깅] 현재 블록체인에서 반환된 구매 내역:", purchasedItems);
     } catch (error) {
-        console.error("🚨 [디버깅 실패] 구매 내역을 가져오는 중 오류 발생:", error);
+        console.error("[디버깅 실패] 구매 내역을 가져오는 중 오류 발생:", error);
     }
 }
 
-// ✅ 디버깅용 함수 실행
 debugPurchaseHistory();
 
-// 🔥 전역 객체에 등록하여 `index.html`에서도 호출 가능하도록 설정
 window.loadPurchaseHistory = loadPurchaseHistory;
 
-// 🔹 구매 내역을 자동으로 불러오기 (페이지 로드 시 실행)
 window.onload = async function() {
     await connectWallet();
-    await loadPurchaseHistory(); // 🔥 지갑 연결 후 자동으로 구매 내역 불러오기
+    await loadPurchaseHistory(); 
+	await displayDices();
 };
 
 window.getItemPrice = getItemPrice;
 
 
-// 🔹 초기화
+let isInitialized = false;
+
 async function initialize() {
-	await checkLogin();
+    if (isInitialized) {
+        return;
+    }
+
+    console.log("🟢 초기화 시작");
+
     await connectWallet();
+
+    const storedAccount = localStorage.getItem("userAccount");
+    if (!storedAccount) {
+        alert("로그인이 필요합니다!");
+        window.location.href = "login.html";
+        return;
+    }
+
+    listenForAccountChange();
+
     await checkAdmin();
+    await checkBalance();
+    await loadPurchaseHistory();
+
+    isInitialized = true;
 }
 
-// ✅ 전역 객체 등록 (index.html에서 호출 가능)
 window.connectWallet = connectWallet;
-window.onload = initialize;
+window.checkBalance = checkBalance;
 window.buyItem = buyItem;
 window.requestGTN = requestGTN;
 window.checkAdmin = checkAdmin;
-window.checkBalance = checkBalance;
 window.rollDice = rollDice;
+window.displayDices = displayDices;

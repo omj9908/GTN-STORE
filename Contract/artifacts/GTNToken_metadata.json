@@ -252,6 +252,25 @@
 						"internalType": "address",
 						"name": "user",
 						"type": "address"
+					}
+				],
+				"name": "getPurchaseHistory",
+				"outputs": [
+					{
+						"internalType": "uint256[]",
+						"name": "",
+						"type": "uint256[]"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "user",
+						"type": "address"
 					},
 					{
 						"internalType": "uint256",
@@ -578,11 +597,11 @@
 	},
 	"sources": {
 		"Contract/Tokrnmaker1.sol": {
-			"keccak256": "0x525f2fdb271f36fa9e1202a2d08eb7461ae699de2a5e13434b638b36b153b7b4",
+			"keccak256": "0xc55c76eea7ebc0272775b969b3e8816054d896c36480705077b0cee0538bc71b",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://11d55e6dbd2548c82e809085366dec41243242cfa763729fb02e91844477c777",
-				"dweb:/ipfs/QmZUzDezBgwYdhDxYU28HrmcEfFanHr5Wsn2qmsuZm8Zxd"
+				"bzz-raw://2969274071cd58e33a5a312a53253389f7ba2e65dffe4ab8d5bc1e81df9e61ed",
+				"dweb:/ipfs/Qmd4cm14DdoiHfQp6oTMF3PuPRvZ1SB6zukQZyPjbN9pNQ"
 			]
 		},
 		"https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.0.0/contracts/access/Ownable.sol": {
