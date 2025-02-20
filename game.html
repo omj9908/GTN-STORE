@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+	<head>
+		<meta charset="UTF-8"> </meta>
+		<meta name="viewport" content="width=device-width, initial-scale=1"></meta>
+		<title>Dice!</title>
+		<link rel="stylesheet" type="text/css" href="css/base.css"> </link>
+		
+	</head>
+	<body>
+		<main>
+			<div class="frame">
+			<div class="content">
+				<canvas id="canvas"></canvas>
+				<div class="ui-controls">
+					<div class="score">
+						Score: <span id="score-result" data-scores=""></span><br>
+						<span id="score-sum"></span>
+					</div>
+					<button id="roll-btn">Throw!</button>
+				
+			</div>
+			
+		</main>
+		<script type="importmap">
+		  {
+			"imports": {
+			  "three": "https://unpkg.com/three@0.138.0/build/three.module.js",
+			  "three/addons/": "https://unpkg.com/three@0.138.0/examples/jsm/"
+			}
+		  }
+		</script>
+		<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+
+		<script type="module" src="./js/yahtzee copy 2.js"></script>
+
+		
+	</body>
+</html>
+
+<!-- 인트로화면 있으면 좋겠습니다! -->
+ <!-- 머신러닝으로 난이도 밸런싱을 해준다(확률 조정 AI)
+  tensetflow.js같은게있긴하다 회귀나 예측을 해서 AI를 만들면 좋겠다 실시간 사용자패턴에따라 어떻게 반응하도록 만들었다 
+  이걸 고급진용어를 사용해가지고 하는것이다 그건 AI를 넣는것은 비추 강화학습을 넣어야해서 어려움 만약 이것을 넣을 수 있다면 
+  게임을 데이터화 해서 그걸 학습한 AI를 만든다면 이건 큰 메리트가 될 수 있다 나의 게임패턴을 연구하는것이다 그것을 할 수 있다면 이건 굉장히 좋은것이다
+  tenserflow.js를 사용하는게 아니라 파이썬 텐서플로우를 할 수 있다면? 
+   => 그건 한번 알아봐보기 -->
+
+   <!-- 게임끝나고 저장할 때마다 데이터를 저장해두고 게임이 끝나면 어딘가(예를들면 빽앤드)에 저장되어두고 해당 빽앤드 데이터(파라미터)를 가지고 이것을 AI에 넣
+	어서 학습을 시키는것은 어떨까?
+	1.블록체인 연계 게임
+	2.three.js를통한 3D게임
+	3.AI를 적용한 적을 만들어 재미요소 추가 (미러링) <-이것 또한 AI를 통해 할 수 있다면  이걸 만약 주장한다면 대표님에게 얘기할 수 있다 근데 이건 판이 너무 커짐 
+	3_1 마음가짐을 단단히 즉 어필할 수 있느 요소를 찾아보기 즉 간단하게는 지도학습이고 강화학습을 통해 해볼 수도있는데 너무어렵다 파이썬 강화학습 모듈 playground라고 있는데
+	이걸쓰기에는 좀 그렇다 이런 재미와 기술을 결합해서 하면 좋겠다 이것은 단순한 프론트앤드 기술이 아니라 이러한 메리트가 있으면 200%수업이다 이것을 플랫폼 삼아서 게임에
+	AI를 어떻게 접목할지를 연구해보았으면 좋겠다 
+
+	이렇게 남들이 갖추지못한 조합을 가졌으면 좋겠다는것이다 이게 메리트가 된다는 것이다 이런 조합을 좀 욕심내서 만들었으면 좋겠다 이렇게 자신만의 스펙을 만든다면 좋겠다 
+	게임업체는 한번도전해볼만한 분야다 블록체인은 없어질 기술이 아니기 떄문에 
+
+	디시전 트리(!!!) 
+	콜드스타트문제를 생각해야한다 데이터의 일부는 복사를 해둬서 특정 부분에는 바로 시작을 할 수 있게 하기 그 뒤에 자신의 플레이 데이터를 (몽고DB를통해)전달해서 성장시키기
+
+	+) 감성품질(스킨의 품질 + 보드의 품질 + 사운드 등등)을 통해서 스킨마다 이런 감성품질을 느끼기
+
+	++) 차징 시스템도 있으면 좋겠다 throw!을 길게 누르면 힘이 쎄지는 차징 시스템 (이떄 애니메이션으로 주사위가 부르르르 떨리는 것까지 하는것)
+
+
+	+++) 
+
+
+	NFT 가스비 (부가세처럼)
+	=> 액션을 취하는 입장에서는 폴리곤을 추천을한다 (레이얼 투 폴리곤?) 폴리곤?????
+
+	==> 이건 다음레벨인거같고 폴리곤보다는 지금은 TESTNET으로 하기 그리고 가스비는 무시할 수준이라 소비자에게 부담
+
+
+
+	소모한 가스비는 일부는 소각되고 일부는 채굴자에게 시세에 맞춰서 
+
+
+
+
+
+
+	이렇게 3마리 토끼를 다 잡는것이다 -->
+<!-- 만약 2P이상의 게임이면 자바 게임서버 포케어쩌구 -->

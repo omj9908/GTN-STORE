@@ -6,6 +6,21 @@
     <title>주사위 상점</title>
     <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
     <script type="module" src="js/index.js"></script>
+
+    <script defer>
+        document.addEventListener("DOMContentLoaded", function () {
+            const startGameBtn = document.getElementById("start-game-btn");
+            if (startGameBtn) {
+                startGameBtn.addEventListener("click", function () {
+                    window.location.href = "game.html"; 
+                });
+            } else {
+                console.error("버튼을 찾을 수 없습니다!");
+            }
+        });
+    </script>
+    
+
     <style>
         body { font-family: Arial, sans-serif; text-align: center; }
         .dice-container { display: flex; flex-wrap: wrap; justify-content: center; }
@@ -13,6 +28,30 @@
         .dice-card img { width: 100%; height: auto; }
         button { padding: 10px; margin-top: 10px; cursor: pointer; }
         .purchase-history { margin-top: 20px; }
+
+        #start-game-btn {
+            position: fixed;  /* 화면 고정 */
+            bottom: 20px;  /* 아래 여백 */
+            right: 20px;  /* 오른쪽 여백 */
+            background-color: #ff9800; /* 주황색 */
+            color: white;
+            font-size: 24px; /* 🔹 폰트 크기 증가 */
+            font-weight: bold;
+            border: none;
+            border-radius: 35px; /* 🔹 둥근 정도 증가 */
+            padding: 20px 40px; /* 🔹 버튼 크기 증가 */
+            cursor: pointer;
+            transition: 0.3s;
+            box-shadow: 4px 4px 15px rgba(0, 0, 0, 0.2); /* 그림자 더 강조 */
+            }
+
+        #start-game-btn:hover {
+            background-color: #e68900;
+            transform: scale(1.15); /* 🔹 호버 시 더 커지도록 */
+            }
+
+        
+            
     </style>
 </head>
 <body>
@@ -42,6 +81,8 @@
     </div>
 
     <div id="diceList"></div>
+
+    <button id="start-game-btn">🎲 게임 시작</button>
 
 
     <script>
