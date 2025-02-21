@@ -1,4 +1,4 @@
-const CONTRACT_ADDRESS = "0x0fb599e09f6a68145164611c8ef727ff1d87a644";
+const CONTRACT_ADDRESS = "0xb9f2d776c510f85e97d628b90aea054938a27e48";
 const ABI = [
 	{
 		"inputs": [
@@ -561,20 +561,34 @@ async function buyItem(itemId) {
         console.log(`🛒 아이템(${itemId}) 구매 시도 중...`);
 
         const tx = await contract.buyItem(itemId);
-        await tx.wait(); 
+        await tx.wait();
 
         console.log(`✅ 아이템(${itemId}) 구매 완료!`);
         alert("✅ 주사위 구매 완료!");
 
-        await checkBalance(); // 🔹 구매 후 잔액 업데이트
-        await loadPurchaseHistory();
-        await displayDices();
+        const walletAddress = await signer.getAddress();
 
+        const response = await fetch("http://localhost:3000/api/buy-skin", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ walletAddress, itemId }),
+        });
+
+        const data = await response.json();
+        console.log("🔍 서버 응답:", data);
+
+        if (data.success) {
+            await loadPurchaseHistory();
+            await displayDices();
+        } else {
+            console.error("🚨 서버 오류:", data.message);
+        }
     } catch (error) {
         console.error("🚨 구매 실패:", error);
         alert("구매 실패: " + error.message);
     }
 }
+
 
 if (typeof window.displayDices === "undefined") {
     window.displayDices = async function () {
@@ -773,46 +787,96 @@ function loadEquippedSkin() {
 // 장착하기 리스트
 let equippedSkins = []; 
 
-async function equipSkin(itemId) {
-    if (equippedSkins.length > 0) {
-        alert("이미 스킨을 장착하고 있습니다. 먼저 장착을 해제하세요.");
+async function equipSkin(skinId, skinTitle) {
+    if (!skinTitle) {
+        console.error(`🚨 스킨 제목이 제공되지 않음: ${skinId}`);
+        alert("스킨 제목이 없습니다.");
         return;
     }
 
-    const itemName = await getItemName(itemId); 
+    const accounts = await window.ethereum.request({ method: "eth_accounts" });
+    if (accounts.length === 0) {
+        alert("지갑이 연결되지 않았습니다!");
+        return;
+    }
 
-    equippedSkins = [{ id: itemId, name: itemName }];
-    equippedSkin = equippedSkins[0];  // 🔥 현재 장착된 스킨 정보 업데이트
-    localStorage.setItem("equippedSkin", JSON.stringify(equippedSkin)); // 🔥 장착 정보 저장
+    const walletAddress = accounts[0].toLowerCase();
 
-    console.log("장착한 스킨 목록:", equippedSkins);
+    try {
+        const response = await fetch("http://localhost:3000/api/equip-skin", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ walletAddress, skinId, skinTitle })  // ✅ title 추가
+        });
 
-    document.querySelectorAll(".equip-btn").forEach(btn => {
-        btn.innerText = "장착하기";
-        btn.setAttribute("onclick", `equipSkin(${btn.dataset.id})`);
-    });
+        const result = await response.json();
+        console.log(`✅ 서버 응답 데이터:`, result);
 
-    const button = document.getElementById(`skin-btn-${itemId}`);
-    button.innerText = "장착 해제";
-    button.setAttribute("onclick", `unSkin(${itemId})`);
+        if (result.success) {
+            alert(result.message);
+            
+            equippedSkin = { id: skinId, title: skinTitle };
+            localStorage.setItem("equippedSkin", JSON.stringify(equippedSkin));
+
+            document.getElementById(`skin-btn-${skinId}`).innerText = "장착 해제";
+            document.getElementById(`skin-btn-${skinId}`).setAttribute("onclick", `unSkin(${skinId})`);
+        } else {
+            alert(result.message);
+        }
+    } catch (error) {
+        console.error("🚨 스킨 장착 실패:", error);
+        alert("스킨 장착 중 오류가 발생했습니다.");
+    }
 }
 
 // 🔹 장착 해제 함수
-function unSkin(itemId) {
-    equippedSkins = []; 
-    equippedSkin = null; // 🔥 장착된 스킨 정보 초기화
-    localStorage.removeItem("equippedSkin"); // 🔥 로컬 스토리지에서 삭제
+async function unSkin() {
+    console.log("🎭 스킨 장착 해제 시도 중...");
 
-    console.log("장착 해제 후 스킨 목록:", equippedSkins);
+    const walletAddress = await signer.getAddress();
 
-    const button = document.getElementById(`skin-btn-${itemId}`);
-    button.innerText = "장착하기";
-    button.setAttribute("onclick", `equipSkin(${itemId})`);
+    const response = await fetch("http://localhost:3000/api/un-equip-skin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ walletAddress }),
+    });
+
+    const data = await response.json();
+    console.log("🔍 서버 응답 코드:", response.status);
+    console.log("✅ 서버 응답 데이터:", data);
+
+    if (data.success) {
+        equippedSkin = null;
+        localStorage.removeItem("equippedSkin");
+        alert("✅ 스킨 장착 해제 성공!");
+        await displayDices();
+    } else {
+        alert("🚨 스킨 장착 해제 실패: " + data.message);
+    }
 }
 
 
 window.equipSkin = equipSkin;
 window.unSkin = unSkin;
+
+async function loadUserSkins() {
+    const userAddress = await signer.getAddress();
+
+    const response = await fetch("http://localhost:3000/api/get-skins", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ walletAddress: userAddress })
+    });
+
+    const data = await response.json();
+    if (data.success) {
+        purchasedSkins = data.purchasedSkins;
+        equippedSkin = data.equippedSkin;
+        displayDices();
+    } else {
+        console.error("🚨 스킨 정보 불러오기 실패:", data.message);
+    }
+}
 
 
 async function loadPurchasedSkins() {
