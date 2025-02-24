@@ -152,31 +152,36 @@ app.post("/api/buy-skin", async (req, res) => {
 });
 
 app.post("/api/equip-skin", async (req, res) => {
-    const { walletAddress, skinName, skinTitle } = req.body;
+    let { walletAddress, skinId, skinTitle } = req.body;
 
-    // 🚨 검증: 필수 데이터가 빠져있는지 확인
-    if (!walletAddress || skinName === undefined) {
+    // 📌 기본값 설정 및 데이터 검증
+    if (!walletAddress || skinId === undefined) {
+        console.log("🚨 요청 오류: 지갑 주소 또는 스킨 ID 없음");
         return res.status(400).json({ success: false, message: "지갑 주소와 아이템 ID를 입력하세요." });
     }
 
+    if (!skinTitle) {
+        skinTitle = "기본 스킨"; // 🚨 **skinTitle이 undefined일 경우 기본값 설정**
+    }
+
+    walletAddress = walletAddress.toLowerCase();
+
     try {
-        // ✅ walletAddress를 소문자로 변환하여 조회
-        const user = await User.findOne({ walletAddress: walletAddress.toLowerCase() });
+        const user = await User.findOne({ walletAddress });
 
         if (!user) {
-            console.log(`🚨 사용자를 찾을 수 없음: ${walletAddress.toLowerCase()}`);
             return res.status(404).json({ success: false, message: "사용자가 존재하지 않습니다." });
         }
 
-        if (!user.purchasedSkins.includes(skinName)) {
+        if (!user.purchasedSkins.includes(skinId)) {
             return res.status(400).json({ success: false, message: "구매한 스킨이 아닙니다." });
         }
 
-        // ✅ equippedSkin을 업데이트 (한 개만 유지)
-        user.equippedSkin = { id: skinName, title: skinTitle };
+        // ✅ **equipSkin 업데이트**
+        user.equippedSkin = { id: skinId, title: skinTitle };
         await user.save();
 
-        console.log(`✅ ${walletAddress}가 스킨(${skinName} - ${skinTitle})을 장착함.`);
+        console.log(`✅ ${walletAddress}가 스킨(${skinId} - ${skinTitle})을 장착함.`);
         res.json({ success: true, message: `스킨(${skinTitle}) 장착 성공`, equippedSkin: user.equippedSkin });
     } catch (error) {
         console.error("🚨 스킨 장착 중 오류 발생:", error);
@@ -185,14 +190,16 @@ app.post("/api/equip-skin", async (req, res) => {
 });
 
 app.post("/api/un-equip-skin", async (req, res) => {
-    const { walletAddress } = req.body;
+    let { walletAddress } = req.body;
 
     if (!walletAddress) {
         return res.status(400).json({ success: false, message: "지갑 주소를 입력하세요." });
     }
 
+    walletAddress = walletAddress.toLowerCase();
+
     try {
-        const user = await User.findOne({ walletAddress: walletAddress.toLowerCase() });
+        const user = await User.findOne({ walletAddress });
 
         if (!user) {
             return res.status(404).json({ success: false, message: "사용자를 찾을 수 없습니다." });
@@ -204,7 +211,7 @@ app.post("/api/un-equip-skin", async (req, res) => {
 
         console.log(`❌ ${walletAddress}가 스킨(${user.equippedSkin.id} - ${user.equippedSkin.title}) 장착 해제.`);
         
-        // ✅ Remove equipped skin data
+        // ✅ **장착 해제**
         user.equippedSkin = { id: null, title: "" };
         await user.save();
 
@@ -215,19 +222,20 @@ app.post("/api/un-equip-skin", async (req, res) => {
     }
 });
 
-
 app.post("/api/get-skins", async (req, res) => {
-    const { walletAddress } = req.body;
+    let { walletAddress } = req.body;
 
     if (!walletAddress) {
-        return res.json({ success: false, message: "지갑 주소를 입력하세요." });
+        return res.status(400).json({ success: false, message: "지갑 주소를 입력하세요." });
     }
+
+    walletAddress = walletAddress.toLowerCase();
 
     try {
         const user = await User.findOne({ walletAddress });
 
         if (!user) {
-            return res.json({ success: false, message: "사용자가 존재하지 않습니다." });
+            return res.status(404).json({ success: false, message: "사용자가 존재하지 않습니다." });
         }
 
         res.json({
@@ -236,11 +244,10 @@ app.post("/api/get-skins", async (req, res) => {
             equippedSkin: user.equippedSkin
         });
     } catch (error) {
+        console.error("🚨 스킨 정보 불러오기 실패:", error);
         res.status(500).json({ success: false, message: "스킨 정보 불러오기 실패", error });
     }
 });
-
-
 
 app.listen(PORT, () => {
     console.log(`서버 실행 중: http://localhost:${PORT}`);
