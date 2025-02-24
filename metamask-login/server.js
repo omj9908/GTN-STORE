@@ -152,10 +152,10 @@ app.post("/api/buy-skin", async (req, res) => {
 });
 
 app.post("/api/equip-skin", async (req, res) => {
-    const { walletAddress, skinId, skinTitle } = req.body;
+    const { walletAddress, skinName, skinTitle } = req.body;
 
     // 🚨 검증: 필수 데이터가 빠져있는지 확인
-    if (!walletAddress || skinId === undefined) {
+    if (!walletAddress || skinName === undefined) {
         return res.status(400).json({ success: false, message: "지갑 주소와 아이템 ID를 입력하세요." });
     }
 
@@ -168,15 +168,15 @@ app.post("/api/equip-skin", async (req, res) => {
             return res.status(404).json({ success: false, message: "사용자가 존재하지 않습니다." });
         }
 
-        if (!user.purchasedSkins.includes(skinId)) {
+        if (!user.purchasedSkins.includes(skinName)) {
             return res.status(400).json({ success: false, message: "구매한 스킨이 아닙니다." });
         }
 
         // ✅ equippedSkin을 업데이트 (한 개만 유지)
-        user.equippedSkin = { id: skinId, title: skinTitle };
+        user.equippedSkin = { id: skinName, title: skinTitle };
         await user.save();
 
-        console.log(`✅ ${walletAddress}가 스킨(${skinId} - ${skinTitle})을 장착함.`);
+        console.log(`✅ ${walletAddress}가 스킨(${skinName} - ${skinTitle})을 장착함.`);
         res.json({ success: true, message: `스킨(${skinTitle}) 장착 성공`, equippedSkin: user.equippedSkin });
     } catch (error) {
         console.error("🚨 스킨 장착 중 오류 발생:", error);

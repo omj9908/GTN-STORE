@@ -1,108 +1,139 @@
 let diceResult = [];
 
+// 🛑 점수판 객체 정의 (초기화)
 let scoreBoard = {
-    ones: null,
-    twos: null,
-    threes: null,
-    fours: null,
-    fives: null,
-    sixes: null,
-    threeOfAKind: null,
-    fourOfAKind: null,
-    fullHouse: null,
-    smallStraight: null,
-    largeStraight: null,
-    yahtzee: null,
-    chance: null,
-    upperSectionTotal: 0, // 상단 섹션 합계 추가
-    bonus: 0, // 보너스 점수 추가
-    upperSectionGrandTotal: 0, // 상단 섹션 총점 추가
-    lowerSectionTotal: 0, // 하단 섹션 총점
-    grandTotal: 0, // 최종 점수
+    ones: null, twos: null, threes: null, fours: null, fives: null, sixes: null,
+    threeOfAKind: null, fourOfAKind: null, fullHouse: null, smallStraight: null, 
+    largeStraight: null, yahtzee: null, chance: null,
+    upperSectionTotal: 0, bonus: 0, upperSectionGrandTotal: 0,
+    lowerSectionTotal: 0, grandTotal: 0,
 };
 
-// 모듈 스코프 변수 선언
-let currentDiceResults = [];
-let currentRollIndex = 0;
+// 🛑 `savedScores`는 localStorage에서 불러와 저장
+export let savedScores = JSON.parse(localStorage.getItem("savedScores")) || [];
 
-// savedScores는 외부에서 export 했다고 가정
-import { savedScores } from './yahtzee copy 2.js';
+// 🟢 점수 저장 함수
+export function saveScores() {
+    console.log("💾 saveScores() 실행됨!");
 
-// 주사위 결과값을 보여주는 함수
-export function displayScores() {
+    const scoreResult = document.getElementById("score-result").dataset.scores;
+    if (!scoreResult) {
+        console.warn("⚠️ 저장할 점수가 없습니다!");
+        return;
+    }
+
+    const scoreArray = scoreResult.split(',').map(Number);
+    savedScores.push(scoreArray);
+
+    // 🔥 localStorage에 저장
+    localStorage.setItem("savedScores", JSON.stringify(savedScores));
     
+    console.log("✅ 저장된 점수 목록:", savedScores);
+    console.log("💾 localStorage에 저장됨:", localStorage.getItem("savedScores"));
+}
+
+// 🟢 점수 불러오기 함수
+export function loadScores() {
+    console.log("🔄 loadScores() 실행됨!");
+    let savedData = localStorage.getItem("savedScores");
+
+    if (!savedData) {
+        console.warn("⚠️ 저장된 점수가 없습니다!");
+        return;
+    }
+
+    // 🛑 JSON 파싱 후 기존 `savedScores` 배열을 비우고 새 데이터 삽입
+    savedScores.length = 0;
+    savedScores.push(...JSON.parse(savedData));
+
+    console.log("✅ 불러온 점수 목록:", savedScores);
+
+    // 🟢 점수 리스트를 HTML 요소에 추가
+    const scoreDisplay = document.getElementById('scoreDisplay');
+    if (!scoreDisplay) {
+        console.error("❌ `scoreDisplay` 요소를 찾을 수 없음!");
+        return;
+    }
+
+    // 🔥 기존 리스트 초기화
+    scoreDisplay.innerHTML = '';
+
+    // 🔹 불러온 점수를 리스트 형식으로 출력
+    savedScores.forEach((scoreArray, index) => {
+        const listItem = document.createElement('div');
+        listItem.textContent = `🎲 게임 ${index + 1}: ${scoreArray.join(', ')}`;
+        scoreDisplay.appendChild(listItem);
+    });
+
+    console.log("✅ 점수 리스트 업데이트 완료!");
+}
+
+
+// 🟢 저장된 점수 표시 함수
+export function displayScores() {
     const scoreDisplay = document.getElementById('scoreDisplay');
     scoreDisplay.innerHTML = '저장된 점수: ' + savedScores.join(', ');
-    console.log(savedScores[0]);
-    
 }
 
-//savedScores 배열 초기화 함수
+// 🟢 점수 리셋 함수
 export function resetSavedScores() {
-    savedScores.length = 0;
+    console.log("🗑️ savedScores 초기화를 방지함");
+    // ✅ 초기화 대신 최근 점수를 유지
+    if (savedScores.length > 1) {
+        savedScores = [savedScores[savedScores.length - 1]]; // 가장 마지막 값만 유지
+    }
 }
-
-// 점수를 선택하는 함수
-export function selectScore(category) {
-    scoreCategory(category);
-    updateScoreBoard();
-    // 주사위를 굴릴 때마다
-    console.log(savedScores[0]);
-
-
-// 점수 카테고리 선택 시
-document.getElementById('ones').addEventListener('click', () => selectScore('ones'));
-
-}
-
-
-// 다른 함수에서 currentDiceResults에 접근해야 할 경우, getter 함수를 제공할 수 있습니다
-function getCurrentDiceResults() {
-    return currentDiceResults;
-}
-
-function enableRemainingCategoryButtons() {
-    const categories = ['ones', 'twos', 'threes', 'fours', 'fives', 'sixes', 'threeOfAKind', 'fourOfAKind', 'fullHouse', 'smallStraight', 'largeStraight', 'yahtzee', 'chance'];
-    categories.forEach(category => {
-      const button = document.getElementById(category + "Button");
-      if (scoreBoard[category] === null) {
-        button.disabled = false;
-      } else {
-        button.disabled = true;
-      }
-    });
-  }
-
-
 
 export function scoreCategory(category) {
-    console.log("Original savedScores:", savedScores);
-    let dice = savedScores[0];//내부 배열을 가져옴옴
-    // 객체의 'value' 속성만 추출
-    console.log("Extracted dice values:", dice);
-
-    if (category === "ones") {
-        scoreBoard.ones = countNumbers(dice, 1) * 1;
-    } else if (category === "twos") {
-        scoreBoard.twos = countNumbers(dice, 2) * 2;
-    } else if (category === "threes") {
-        scoreBoard.threes = countNumbers(dice, 3) * 3;
-    } else if (category === "fours") {
-        scoreBoard.fours = countNumbers(dice, 4) * 4;
-    } else if (category === "fives") {
-        scoreBoard.fives = countNumbers(dice, 5) * 5;
-    } else if (category === "sixes") {   
-        scoreBoard.sixes = countNumbers(dice, 6) * 6;
+    console.log("🔄 점수 계산 시작:", category);
+    
+    // ✅ savedScores 배열이 비어있으면 경고 및 종료
+    if (!savedScores || savedScores.length === 0) {
+        console.warn("⚠️ 불러올 점수가 없습니다.");
+        return;
     }
-    else if (category === "threeOfAKind") {
+
+    let dice = savedScores[savedScores.length - 1]; // 🔥 가장 최근의 점수 사용
+
+    console.log("🎲 현재 주사위 결과:", dice);
+    
+    if (!dice || !Array.isArray(dice)) {
+        console.error("❌ 주사위 점수를 올바르게 가져오지 못했습니다.");
+        return;
+    }
+
+    let score = 0;
+
+    // ✅ 카테고리별 점수 계산
+    if (category === "ones") {
+        score = countNumbers(dice, 1) * 1;
+        scoreBoard.ones = score;
+    } else if (category === "twos") {
+        score = countNumbers(dice, 2) * 2;
+        scoreBoard.twos = score;
+    } else if (category === "threes") {
+        score = countNumbers(dice, 3) * 3;
+        scoreBoard.threes = score;
+    } else if (category === "fours") {
+        score = countNumbers(dice, 4) * 4;
+        scoreBoard.fours = score;
+    } else if (category === "fives") {
+        score = countNumbers(dice, 5) * 5;
+        scoreBoard.fives = score;
+    } else if (category === "sixes") {   
+        score = countNumbers(dice, 6) * 6;
+        scoreBoard.sixes = score;
+    } else if (category === "threeOfAKind") {
         if (hasSameValues(dice, 3)) {
-            scoreBoard.threeOfAKind = dice.reduce((a, b) => a + b, 0);
+            score = dice.reduce((a, b) => a + b, 0);
+            scoreBoard.threeOfAKind = score;
         } else {
             scoreBoard.threeOfAKind = 0;
         }
     } else if (category === "fourOfAKind") {
         if (hasSameValues(dice, 4)) {
-            scoreBoard.fourOfAKind = dice.reduce((a, b) => a + b, 0);
+            score = dice.reduce((a, b) => a + b, 0);
+            scoreBoard.fourOfAKind = score;
         } else {
             scoreBoard.fourOfAKind = 0;
         }
@@ -131,137 +162,106 @@ export function scoreCategory(category) {
             scoreBoard.yahtzee = 0;
         }
     } else if (category === "chance") {
-        scoreBoard.chance = dice.reduce((a, b) => a + b, 0);
+        score = dice.reduce((a, b) => a + b, 0);
+        scoreBoard.chance = score;
     }
 
+    console.log(`✅ 계산된 점수 (${category}): ${score}`);
+
+    // 🔥 점수를 HTML에 반영
+    let scoreElement = document.getElementById(`score${capitalize(category)}`);
+    if (scoreElement) {
+        scoreElement.textContent = score;
+    } else {
+        console.error(`⚠️ 점수를 표시할 HTML 요소를 찾을 수 없음: score${capitalize(category)}`);
+    }
+
+    // 🔥 점수판 업데이트 실행
     updateScoreBoard();
+
+    // 🔥 버튼 비활성화 (한 번 선택하면 다시 못 선택하게)
     disableCategoryButton(category);
-
-    
 }
 
+
+
+// 🟢 점수판 업데이트 함수
 export function updateScoreBoard() {
-    document.getElementById("scoreOnes").textContent = scoreBoard.ones || "0";
-    document.getElementById("scoreTwos").textContent = scoreBoard.twos || "0";
-    document.getElementById("scoreThrees").textContent = scoreBoard.threes || "0";
-    document.getElementById("scoreFours").textContent = scoreBoard.fours || "0";
-    document.getElementById("scoreFives").textContent = scoreBoard.fives || "0";
-    document.getElementById("scoreSixes").textContent = scoreBoard.sixes || "0";
-    document.getElementById("scoreThreeOfAKind").textContent = scoreBoard.threeOfAKind || "0";
-    document.getElementById("scoreFourOfAKind").textContent = scoreBoard.fourOfAKind || "0";
-    document.getElementById("scoreFullHouse").textContent = scoreBoard.fullHouse || "0";
-    document.getElementById("scoreSmallStraight").textContent = scoreBoard.smallStraight || "0";
-    document.getElementById("scoreLargeStraight").textContent = scoreBoard.largeStraight || "0";
-    document.getElementById("scoreYahtzee").textContent = scoreBoard.yahtzee || "0";
-    document.getElementById("scoreChance").textContent = scoreBoard.chance || "0";
+    console.log("📝 점수판 업데이트 중...");
+    
+    if (!savedScores || savedScores.length === 0) {
+        console.warn("⚠️ 불러올 점수가 없습니다.");
+        return;
+    }
 
+    let latestScore = savedScores[savedScores.length - 1]; // 가장 최근 점수 가져오기
+    console.log("✅ 적용할 점수:", latestScore);
 
-// 상단 섹션 합계 계산
-let upperSectionSum =
-    (scoreBoard.ones || 0) +
-    (scoreBoard.twos || 0) +
-    (scoreBoard.threes || 0) +
-    (scoreBoard.fours || 0) +
-    (scoreBoard.fives || 0) +
-    (scoreBoard.sixes || 0);
-scoreBoard.upperSectionTotal = upperSectionSum;
-document.getElementById("upperSectionTotal").textContent = upperSectionSum;
+    if (!latestScore || !Array.isArray(latestScore)) {
+        console.warn("❌ 최신 점수가 올바른 배열 형태가 아닙니다!");
+        return;
+    }
 
-// 보너스 계산
-if (upperSectionSum >= 63) {
-    scoreBoard.bonus = 35;
-  } else {
-    scoreBoard.bonus = 0;
-  }
-  document.getElementById("bonus").textContent = scoreBoard.bonus;
+    // ✅ 점수판 업데이트
+    let upperSectionSum = 0;
+    let categories = ["ones", "twos", "threes", "fours", "fives", "sixes"];
 
-  // 상단 섹션 총점 계산 (합계 + 보너스)
-  scoreBoard.upperSectionGrandTotal = upperSectionSum + scoreBoard.bonus;
-  document.getElementById("upperSectionGrandTotal").textContent = scoreBoard.upperSectionGrandTotal;
+    categories.forEach(category => {
+        let element = document.getElementById(`score${capitalize(category)}`);
+        if (element) {
+            let score = scoreBoard[category] || 0;
+            element.textContent = score;
+            upperSectionSum += score;
+        }
+    });
 
-    // 하단 섹션 합계 계산
-    let lowerSectionSum =
-        (scoreBoard.threeOfAKind || 0) +
-        (scoreBoard.fourOfAKind || 0) +
-        (scoreBoard.fullHouse || 0) +
-        (scoreBoard.smallStraight || 0) +
-        (scoreBoard.largeStraight || 0) +
-        (scoreBoard.yahtzee || 0) +
-        (scoreBoard.chance || 0);
-    scoreBoard.lowerSectionTotal = lowerSectionSum;
-    document.getElementById("lowerSectionTotal").textContent = lowerSectionSum;
+    document.getElementById("upperSectionTotal").textContent = upperSectionSum;
 
-    // 최종 점수 계산
-    scoreBoard.grandTotal = scoreBoard.upperSectionGrandTotal + scoreBoard.lowerSectionTotal;
+    // ✅ 보너스 적용
+    scoreBoard.bonus = upperSectionSum >= 63 ? 35 : 0;
+    document.getElementById("bonus").textContent = scoreBoard.bonus;
+
+    // ✅ 총점 업데이트
+    scoreBoard.grandTotal = upperSectionSum + scoreBoard.bonus;
     document.getElementById("grandTotal").textContent = scoreBoard.grandTotal;
-
 }
 
+function capitalize(str) {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+
+// 🟢 숫자 개수 세기 함수
 function countNumbers(dice, number) {
     return dice.filter(die => die === number).length;
 }
 
+// 🟢 동일 숫자가 일정 개수 이상 존재하는지 체크
 function hasSameValues(dice, count) {
     const counts = {};
-    for (const die of dice) {
-        counts[die] = (counts[die] || 0) + 1;
-    }
+    dice.forEach(die => counts[die] = (counts[die] || 0) + 1);
     return Object.values(counts).some(c => c >= count);
 }
 
+// 🟢 풀하우스 체크 함수
 function isFullHouse(dice) {
-    const counts = {};
-    for (const die of dice) {
-        counts[die] = (counts[die] || 0) + 1;
-    }
-    const values = Object.values(counts);
-    return values.includes(2) && values.includes(3);
+    const counts = Object.values(dice.reduce((acc, num) => {
+        acc[num] = (acc[num] || 0) + 1;
+        return acc;
+    }, {}));
+    return counts.includes(2) && counts.includes(3);
 }
 
+// 🟢 스트레이트 체크 함수
 function isSmallStraight(dice) {
-    const uniqueDice = [...new Set(dice)].sort();
-    const straight = [1, 2, 3, 4, 5, 6];
-
-    for (let i = 0; i <= straight.length - 4; i++) {
-        if (uniqueDice.join('').includes(straight.slice(i, i + 4).join(''))) {
-            return true;
-        }
-    }
-    return false;
+    return /1234|2345|3456/.test([...new Set(dice)].sort().join(''));
 }
 
 function isLargeStraight(dice) {
-    const uniqueDice = [...new Set(dice)].sort();
-    const largeStraight1 = [1, 2, 3, 4, 5];
-    const largeStraight2 = [2, 3, 4, 5, 6];
-
-    return uniqueDice.join('') === largeStraight1.join('') || uniqueDice.join('') === largeStraight2.join('');
+    return /12345|23456/.test([...new Set(dice)].sort().join(''));
 }
 
-// 카테고리 버튼 활성화 함수
-function enableCategoryButtons() {
-    const buttons = document.querySelectorAll('.button');
-    buttons.forEach(button => {
-        const category = button.id.replace('Button', '');
-        button.disabled = scoreBoard[category] !== null;
-    });
-}
-
-// 카테고리 버튼 비활성화 함수
+// 🟢 버튼 비활성화 함수
 function disableCategoryButton(category) {
     document.getElementById(category).disabled = true;
 }
-
-function isGameOver() {
-    return Object.values(scoreBoard).every(score => score !== null);
-}
-
-function calculateTotalScore() {
-    let totalScore = Object.values(scoreBoard).reduce((a, b) => a + b, 0);
-    alert(`게임 종료! 총 점수: ${totalScore}`);
-}
-
-
-
-
-

@@ -1,4 +1,4 @@
-const CONTRACT_ADDRESS = "0xb9f2d776c510f85e97d628b90aea054938a27e48";
+const CONTRACT_ADDRESS = "0xe9e843bbe512d6cbfdab6d71fa7d2c30ce8c7e78";
 const ABI = [
 	{
 		"inputs": [
@@ -494,6 +494,50 @@ let provider, signer, contract, currentAccount;
 
 let isWalletConnected = false;
 
+if (window.location.pathname !== "/sol.html") {
+    connectWallet();  // 🔹 `await`을 제거 (top-level await 사용 불가 문제 해결)
+}
+
+// ✅ contract가 초기화되지 않았을 경우 강제 초기화
+async function ensureContractInitialized() {
+    if (!contract) {
+        console.warn("🚨 contract가 초기화되지 않음. Metamask 연결을 시도합니다.");
+        await connectWallet();
+    }
+}
+
+export function getEquippedSkins() {
+    let skins = JSON.parse(localStorage.getItem("equippedSkins")) || [];
+    console.log("📦 getEquippedSkins() 반환값:", skins);
+
+    // ✅ 기존 데이터에 title이 없으면, items.json에서 찾아서 title 추가
+    const items = [
+        { "id": 0, "title": "red_dice" },
+        { "id": 1, "title": "blue_dice" },
+        { "id": 2, "title": "green_dice" },
+        { "id": 3, "title": "yellow_dice" },
+        { "id": 4, "title": "aqua_dice" },
+        { "id": 5, "title": "violet_dice" }
+    ];
+
+    return skins.map(skin => {
+        let matchingItem = items.find(item => item.id === skin.id);
+        return { ...skin, title: matchingItem ? matchingItem.title : "unknown_dice" };
+    });
+}
+
+async function initializeSolPage() {
+    console.log("🔄 sol.html 초기화 중...");
+
+    if (typeof ensureContractInitialized !== "undefined") {
+        await ensureContractInitialized();
+        console.log("✅ contract가 초기화됨.");
+    } else {
+        console.warn("⚠️ ensureContractInitialized가 정의되지 않았습니다. connectWallet을 실행합니다.");
+        await connectWallet();
+    }
+}
+
 async function connectWallet() {
     if (isWalletConnected) {
         console.log("🔄 이미 MetaMask와 연결됨.");
@@ -752,12 +796,6 @@ async function checkBalance() {
     }
 }
 
-async function getItemName(itemId) {
-    const items = await loadItems(); // items.json에서 데이터 가져오기
-    const item = items.find(i => i.id === itemId); // itemId로 아이템 찾기
-    return item ? item.title : "알 수 없는 주사위"; // 아이템이 없으면 기본값 반환
-}
-
 async function loadItems() {
     try {
         const response = await fetch("items.json");
@@ -787,12 +825,18 @@ function loadEquippedSkin() {
 // 장착하기 리스트
 let equippedSkins = []; 
 
-async function equipSkin(skinId, skinTitle) {
-    if (!skinTitle) {
-        console.error(`🚨 스킨 제목이 제공되지 않음: ${skinId}`);
-        alert("스킨 제목이 없습니다.");
+async function equipSkin(skinId) {
+    const items = await loadItems();
+    const selectedSkin = items.find(item => item.id === skinId);
+    
+    if (!selectedSkin) {
+        console.error(`🚨 스킨 ID ${skinId}에 해당하는 아이템을 찾을 수 없습니다.`);
+        alert("스킨 정보를 찾을 수 없습니다.");
         return;
     }
+
+    const skinTitle = selectedSkin.title; // 🔥 `title` 가져오기
+    console.log(`🎭 스킨 장착: ID ${skinId}, Title ${skinTitle}`);
 
     const accounts = await window.ethereum.request({ method: "eth_accounts" });
     if (accounts.length === 0) {
@@ -806,7 +850,7 @@ async function equipSkin(skinId, skinTitle) {
         const response = await fetch("http://localhost:3000/api/equip-skin", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ walletAddress, skinId, skinTitle })  // ✅ title 추가
+            body: JSON.stringify({ walletAddress, skinId, skinTitle })  // ✅ title 전달
         });
 
         const result = await response.json();
@@ -814,7 +858,7 @@ async function equipSkin(skinId, skinTitle) {
 
         if (result.success) {
             alert(result.message);
-            
+
             equippedSkin = { id: skinId, title: skinTitle };
             localStorage.setItem("equippedSkin", JSON.stringify(equippedSkin));
 
@@ -859,26 +903,6 @@ async function unSkin() {
 window.equipSkin = equipSkin;
 window.unSkin = unSkin;
 
-async function loadUserSkins() {
-    const userAddress = await signer.getAddress();
-
-    const response = await fetch("http://localhost:3000/api/get-skins", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ walletAddress: userAddress })
-    });
-
-    const data = await response.json();
-    if (data.success) {
-        purchasedSkins = data.purchasedSkins;
-        equippedSkin = data.equippedSkin;
-        displayDices();
-    } else {
-        console.error("🚨 스킨 정보 불러오기 실패:", data.message);
-    }
-}
-
-
 async function loadPurchasedSkins() {
     if (!contract) return alert("먼저 메타마스크를 연결하세요!");
 
@@ -915,7 +939,7 @@ async function displayDices() {
         const isPurchased = purchasedSkins.includes(dice.id);
         const isEquipped = equippedSkins.includes(dice.id);
         const buttonLabel = isEquipped ? "장착 해제" : isPurchased ? "장착하기" : "구매하기";
-        const buttonAction = isEquipped ? `unequipSkin(${dice.id})` : isPurchased ? `equipSkin(${dice.id})` : `buyItem(${dice.id})`;
+        const buttonAction = isEquipped ? `unSkin(${dice.id})` : isPurchased ? `equipSkin(${dice.id})` : `buyItem(${dice.id})`;
 
         card.innerHTML = `
             <img src="${dice.src}" alt="${dice.title}">
@@ -961,8 +985,6 @@ async function getItemPrice(itemId) {
 }
 
 let isAccountListenerAdded = false;
-
-
 
 async function listenForAccountChange() {
     if (!window.ethereum || isAccountListenerAdded) {
@@ -1049,11 +1071,16 @@ debugPurchaseHistory();
 window.loadPurchaseHistory = loadPurchaseHistory;
 
 window.onload = async function() {
-    await connectWallet();
+    if (window.location.pathname === "/sol.html") {
+        await initializeSolPage();  // sol.html에서만 실행
+    } else {
+        await connectWallet(); // 다른 페이지에서 실행
+    }
+
     await loadPurchaseHistory();
     await displayDices();
     
-    loadEquippedSkin(); 
+    loadEquippedSkin();  // 🔹 장착한 스킨 불러오기
 
     if (equippedSkin) {
         console.log("저장된 장착 정보 복원:", equippedSkin);

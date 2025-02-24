@@ -131,6 +131,11 @@
                      <span id="score-sum"></span>
                   </div>
                   <button id="roll-btn">Throw!</button>
+                  <div class="roll-counter">
+                     🎲 남은 굴리기 횟수: <span id="roll-count-display">3</span>번
+                  </div>
+
+                  <button id="save-btn" disabled>Save!</button>
                </div>
             </div>
          </div>
@@ -149,8 +154,11 @@
                <button id="loadScores">점수 불러오기</button>
                <div id="scoreDisplay"></div>
                <script type="module">
-                  import { displayScores } from './js/score.js';
-               document.getElementById('loadScores').addEventListener('click', displayScores);
+                  import { displayScores, loadScores } from './js/score.js';
+                  document.getElementById('loadScores').addEventListener('click', () => {
+                     console.log("불러온 점수:", savedScores)
+                     loadScores();
+                  });
                </script>
 
 <script type="module">
@@ -162,6 +170,7 @@
      document.querySelectorAll('.category-button').forEach(button => {
        button.addEventListener('click', () => {
          // 버튼 클릭 시 해당 카테고리 점수 계산 (scoreCategory 함수가 있다고 가정)
+         console.log("선택된 카테고리:", button.id);
          scoreCategory(button.id);
          // 점수판 업데이트
          updateScoreBoard();
@@ -325,8 +334,30 @@
       </script>
 
       
-      <script type="module" src="./js/yahtzee copy 2.js"></script>
-      <script type="module" src="./js/score.js"></script>
+      <script type="module" src="./js/yahtzee_copy2.js"></script>
+      <script type="module">
+         import { savedScores, loadScores } from './js/score.js';
+      
+         // 🔹 `savedScores`를 `window` 객체에 추가
+         window.savedScores = savedScores;
+         window.loadScores = loadScores; // `sol.html`에서도 호출 가능하도록 등록
+      
+         document.getElementById("loadScores").addEventListener("click", () => {
+             console.log("🔄 점수 불러오기 버튼 클릭됨!");
+             loadScores(); // ✅ 이제 UI에 점수 표시!
+         });
+      </script>
+      
+     <script>
+      async function initializeSolPage() {
+          console.log("🔄 sol.html 초기화 중...");
+          await ensureContractInitialized();
+          console.log("✅ contract가 초기화됨.");
+      }
+  
+      initializeSolPage();
+  </script>
+
       
    </body>
 </html>
